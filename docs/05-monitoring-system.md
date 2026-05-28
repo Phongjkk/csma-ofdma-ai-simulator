@@ -11,26 +11,26 @@ Hệ thống giám sát gồm bốn khối chức năng nối tiếp nhau:
                   │
                   ▼
         ┌──────────────────────┐
-        │  Bộ tổng hợp cửa sổ   │
-        │     (Aggregator)      │
+        │  Bộ tổng hợp cửa sổ  │
+        │     (Aggregator)     │
         └──────────┬───────────┘
                    │
                    ▼
         ┌──────────────────────┐
-        │  Bộ đệm chuỗi thời    │
-        │   gian (Buffer)       │
+        │  Bộ đệm chuỗi thời   │
+        │   gian (Buffer)      │
         └──────────┬───────────┘
                    │
                    ▼
         ┌──────────────────────┐
-        │  Bộ phát hiện bất     │
-        │  thường (Detector)    │
+        │  Bộ phát hiện bất    │
+        │  thường (Detector)   │
         └──────────┬───────────┘
                    │
                    ▼
         ┌──────────────────────┐
-        │  Bộ quản lý cảnh báo  │
-        │     (Alert Mgr)       │
+        │  Bộ quản lý cảnh báo │
+        │     (Alert Mgr)      │
         └──────────┬───────────┘
                    │
                    ▼

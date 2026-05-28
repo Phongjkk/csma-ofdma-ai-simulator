@@ -1,0 +1,9 @@
+﻿version: '3.9'
+services:
+  app:
+    build: .
+    ports:
+      - '8501:8501'
+    volumes:
+      - .:/app
+    command: streamlit run frontend/streamlit_app.py --server.port 8501

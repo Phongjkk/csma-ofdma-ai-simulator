@@ -22,7 +22,7 @@ Xây dựng hệ thống mô phỏng cơ chế truy cập kênh CSMA/CA và cơ 
 
 1. Mô phỏng chính xác cơ chế CSMA/CA (DCF) theo chuẩn IEEE 802.11: lắng nghe kênh, khoảng cách liên khung (IFS), thuật toán lùi ngẫu nhiên (backoff) và cơ chế xác nhận (ACK).
 2. Mô phỏng cơ chế OFDMA: phân bổ Resource Unit, Trigger Frame và truyền song song nhiều thiết bị.
-3. Đánh giá và so sánh hiệu năng qua ba chế độ: chỉ CSMA/CA (SU), chỉ OFDMA (lý tưởng) và kết hợp cả hai (như Wi-Fi 6/7 thực tế).
+3. Mô phỏng cơ chế CSMA/CA + OFDMA kết hợp như trong Wi-Fi 6/7 thực tế, và đánh giá hiệu năng của hệ thống qua các mức tải khác nhau.
 4. Đo lường năm chỉ số hiệu năng cốt lõi: thông lượng (throughput), độ trễ (latency), tỷ lệ xung đột (collision rate), chỉ số công bằng (fairness index) và hiệu suất sử dụng kênh (channel utilization).
 5. Kiểm chứng tính đúng đắn của bộ mô phỏng bằng cách đối chiếu với mô hình toán học Bianchi.
 6. Sinh tập dữ liệu hiệu năng từ bộ mô phỏng để huấn luyện mô hình AI.

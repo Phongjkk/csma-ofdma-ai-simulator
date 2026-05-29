@@ -1,46 +1,44 @@
-"""Page 4 — Mode comparison across load profiles."""
+"""Page 4 — So sánh hiệu năng theo mức tải và số station (CSMA/CA + OFDMA kết hợp)."""
 import streamlit as st
 
-st.set_page_config(page_title="Compare", page_icon="⚖️", layout="wide")
-st.title("⚖️ Mode Comparison")
+st.set_page_config(page_title="So sánh hiệu năng", page_icon="⚖️", layout="wide")
+st.title("⚖️ So sánh hiệu năng")
+st.caption("Mô phỏng CSMA/CA + OFDMA kết hợp (IEEE 802.11ax) — đánh giá theo mức tải và số station")
 
 with st.sidebar:
-    st.header("Comparison Settings")
-    n_stations = st.slider("Number of Stations", 5, 100, 20)
-    traffic_load = st.slider("Traffic Load", 0.1, 1.0, 0.7, 0.05)
-    sim_time = st.slider("Sim Time (s)", 5.0, 30.0, 15.0, 5.0)
-    pattern = st.selectbox("Traffic Pattern", ["poisson", "cbr", "ramp"])
-    run_all = st.button("▶ Run Both Modes", type="primary")
+    st.header("Cài đặt so sánh")
+    n_stations = st.slider("Số lượng Station", 5, 100, 20)
+    sim_time = st.slider("Thời gian mô phỏng (s)", 5.0, 30.0, 15.0, 5.0)
+    pattern = st.selectbox("Kiểu lưu lượng", ["poisson", "cbr", "ramp", "spike"])
+    run_btn = st.button("▶ Chạy 3 mức tải", type="primary")
 
-if run_all:
+if run_btn:
     from simulator.config import SimConfig
-    from simulator.modes.mode_su import run_su
-    from simulator.modes.mode_ofdma import run_ofdma
+    from simulator.modes.mode_combined import run_combined
 
+    LOADS = {"Thấp (0.2)": 0.2, "Trung bình (0.5)": 0.5, "Cao (0.8)": 0.8}
     results = {}
-    cfg = SimConfig(n_stations=n_stations, traffic_load=traffic_load,
-                    sim_time=sim_time, traffic_pattern=pattern, seed=42)
-    with st.spinner("Running CSMA/CA..."):
-        results["CSMA/CA"] = run_su(cfg)["summary"]
-    with st.spinner("Running OFDMA..."):
-        results["OFDMA"] = run_ofdma(cfg)["summary"]
+    for label, load in LOADS.items():
+        cfg = SimConfig(n_stations=n_stations, traffic_load=load,
+                        sim_time=sim_time, traffic_pattern=pattern, seed=42)
+        with st.spinner(f"Đang chạy mức tải {label}..."):
+            results[label] = run_combined(cfg)["summary"]
     st.session_state["compare_results"] = results
-    st.success("Both modes complete!")
+    st.success("Hoàn tất 3 mức tải!")
 
 if "compare_results" in st.session_state:
     results = st.session_state["compare_results"]
-    modes = list(results.keys())
+    load_labels = list(results.keys())
     metrics = ["throughput_mbps", "latency_p99_ms", "collision_rate", "fairness_index", "channel_util"]
-    labels = ["Throughput (Mbps)", "Latency P99 (ms)", "Collision Rate", "Fairness", "Channel Util"]
+    labels  = ["Throughput (Mbps)", "Latency P99 (ms)", "Collision Rate", "Fairness", "Channel Util"]
 
-    st.subheader("Comparison Table")
+    st.subheader("Bảng so sánh")
     try:
         import pandas as pd
-        rows = []
-        for mode, s in results.items():
-            rows.append({"Mode": mode, **{lbl: round(s[m], 4)
-                                           for m, lbl in zip(metrics, labels)}})
-        st.dataframe(pd.DataFrame(rows).set_index("Mode"), use_container_width=True)
+        rows = [{"Mức tải": lbl, **{l: round(results[lbl][m], 4)
+                                     for m, l in zip(metrics, labels)}}
+                for lbl in load_labels]
+        st.dataframe(pd.DataFrame(rows).set_index("Mức tải"), use_container_width=True)
     except ImportError:
         st.json(results)
 
@@ -48,13 +46,13 @@ if "compare_results" in st.session_state:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
 
-        st.subheader("Bar Charts")
+        st.subheader("Biểu đồ cột")
         fig = make_subplots(rows=1, cols=len(metrics), subplot_titles=labels)
-        colors = ["#636EFA", "#EF553B"]
+        colors = ["#00CC96", "#636EFA", "#EF553B"]
         for j, (m, lbl) in enumerate(zip(metrics, labels)):
-            for i, mode in enumerate(modes):
+            for i, load_lbl in enumerate(load_labels):
                 fig.add_trace(
-                    go.Bar(name=mode, x=[mode], y=[results[mode][m]],
+                    go.Bar(name=load_lbl, x=[load_lbl], y=[results[load_lbl][m]],
                            marker_color=colors[i], showlegend=(j == 0)),
                     row=1, col=j + 1,
                 )
@@ -63,4 +61,4 @@ if "compare_results" in st.session_state:
     except ImportError:
         pass
 else:
-    st.info("Configure parameters in the sidebar and click **Run Both Modes**.")
+    st.info("Cấu hình tham số ở sidebar và nhấn **Chạy 3 mức tải**.")

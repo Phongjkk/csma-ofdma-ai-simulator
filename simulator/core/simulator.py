@@ -18,9 +18,11 @@ from simulator.mac.csma_ca import DCFState
 class Simulator:
     """Discrete-Event Simulator for IEEE 802.11 CSMA/CA and OFDMA."""
 
-    def __init__(self, cfg: SimConfig, mode: str = "su") -> None:
+    def __init__(self, cfg: SimConfig, mode: str = "combined") -> None:
         """
-        mode: 'su' = CSMA/CA only, 'ofdma' = OFDMA only
+        mode: 'combined' = CSMA/CA + OFDMA (IEEE 802.11ax, mặc định)
+              'su'       = chỉ CSMA/CA (dùng cho kiểm chứng Bianchi)
+              'ofdma'    = chỉ OFDMA (dùng cho kiểm chứng lý thuyết)
         """
         self._cfg = cfg
         self._mode = mode
@@ -82,8 +84,8 @@ class Simulator:
             self._scheduler.schedule(t, EventType.METRICS_TICK, {"t": t})
             t += self._cfg.metrics_interval_s
 
-        # OFDMA mode: schedule first trigger frame
-        if self._mode == "ofdma":
+        # OFDMA hoặc combined: schedule first trigger frame
+        if self._mode in ("ofdma", "combined"):
             self._scheduler.schedule(0.0, EventType.TRIGGER_FRAME, {})
 
         self._scheduler.schedule(self._cfg.sim_time, EventType.SIM_END, {})
@@ -100,10 +102,17 @@ class Simulator:
         sta = self._stations[sid]
 
         if self._mode == "ofdma":
-            # In pure OFDMA mode, AP collects all packets
+            # Pure OFDMA: AP collects all packets, no contention
             self._ap.push_packet(sid, pkt)
+        elif self._mode == "combined":
+            # Combined: station uses CSMA/CA to contend, AP also schedules OFDMA cycles
+            sta.receive_packet(pkt)
+            if sta.state == DCFState.IDLE and sta.has_packets():
+                difs_end = sta.start_difs_sensing(event.time)
+                self._scheduler.schedule(difs_end, EventType.BACKOFF_END,
+                                         {"station_id": sid, "phase": "difs"})
         else:
-            # CSMA/CA: station uses DCF
+            # CSMA/CA only (su): station uses DCF
             sta.receive_packet(pkt)
             if sta.state == DCFState.IDLE and sta.has_packets():
                 difs_end = sta.start_difs_sensing(event.time)

@@ -9,8 +9,7 @@ with st.sidebar:
     st.header("Simulation Config")
     n_stations = st.slider("Stations", 5, 50, 20)
     traffic_load = st.slider("Load", 0.1, 1.0, 0.7, 0.05)
-    mode = st.selectbox("Mode", ["su", "ofdma"],
-                        format_func=lambda x: {"su": "CSMA/CA", "ofdma": "OFDMA"}[x])
+    mode = "combined"  # CSMA/CA + OFDMA kết hợp
     pattern = st.selectbox("Pattern", ["poisson", "ramp", "spike", "oscillate"])
     start_btn = st.button("▶ Start Live Demo", type="primary")
 

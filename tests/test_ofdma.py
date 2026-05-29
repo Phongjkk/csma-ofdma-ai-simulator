@@ -71,19 +71,22 @@ class TestOFDMAScheduler(unittest.TestCase):
             self.assertGreater(pkt.ack_time, 0.0)
 
 
-class TestOFDMAMode(unittest.TestCase):
-    def test_ofdma_zero_collision_rate(self):
+class TestCombinedMode(unittest.TestCase):
+    def test_combined_has_positive_throughput(self):
+        from simulator.modes.mode_combined import run_combined_scenario
+        result = run_combined_scenario(n_stations=10, traffic_load=0.5, sim_time=5.0, seed=0)
+        self.assertGreater(result["summary"]["throughput_mbps"], 0.0)
+
+    def test_combined_ofdma_part_zero_collision(self):
+        # OFDMA cycles (pure) dùng để kiểm chứng riêng vẫn không có collision
         result = run_ofdma_scenario(n_stations=10, traffic_load=0.5, sim_time=5.0, seed=0)
         self.assertEqual(result["summary"]["collision_rate"], 0.0)
 
-    def test_ofdma_better_collision_than_csma_high_load(self):
-        from simulator.modes.mode_su import run_su_scenario
-        n, load = 30, 0.8
-        su = run_su_scenario(n, load, sim_time=10.0, seed=42)
-        ofdma = run_ofdma_scenario(n, load, sim_time=10.0, seed=42)
-        # OFDMA should have zero collision (no contention)
-        self.assertEqual(ofdma["summary"]["collision_rate"], 0.0)
-        self.assertGreaterEqual(su["summary"]["collision_rate"], 0.0)
+    def test_combined_high_load_still_works(self):
+        from simulator.modes.mode_combined import run_combined_scenario
+        result = run_combined_scenario(n_stations=30, traffic_load=0.8, sim_time=5.0, seed=1)
+        self.assertGreater(result["summary"]["throughput_mbps"], 0.0)
+        self.assertGreaterEqual(result["summary"]["fairness_index"], 0.0)
 
 
 if __name__ == "__main__":

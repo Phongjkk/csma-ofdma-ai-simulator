@@ -11,8 +11,9 @@ def main():
     parser = argparse.ArgumentParser(description="Live simulation + monitoring demo")
     parser.add_argument("--n", type=int, default=20, help="Number of stations")
     parser.add_argument("--load", type=float, default=0.7, help="Traffic load [0,1]")
-    parser.add_argument("--mode", type=str, default="su",
-                        choices=["su", "ofdma"])
+    parser.add_argument("--mode", type=str, default="combined",
+                        choices=["combined", "su", "ofdma"],
+                        help="combined=CSMA/CA+OFDMA (mặc định), su/ofdma chỉ dùng kiểm chứng")
     parser.add_argument("--sim-time", type=float, default=30.0)
     parser.add_argument("--pattern", type=str, default="poisson")
     args = parser.parse_args()

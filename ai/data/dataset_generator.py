@@ -17,7 +17,6 @@ SCENARIO_GRID = {
     "n_stations": [5, 10, 20, 30, 50, 75, 100],
     "traffic_load": [0.2, 0.5, 0.8, 1.0],
     "traffic_pattern": ["poisson", "cbr", "ramp", "spike", "oscillate"],
-    "mode": ["su", "ofdma"],
 }
 
 
@@ -25,7 +24,6 @@ def generate_scenario(
     n_stations: int,
     traffic_load: float,
     traffic_pattern: str,
-    mode: str,
     sim_time: float = 30.0,
     seed: int = 42,
 ) -> List[MetricSample]:
@@ -36,7 +34,7 @@ def generate_scenario(
         sim_time=sim_time,
         seed=seed,
     )
-    sim = Simulator(cfg, mode=mode)
+    sim = Simulator(cfg, mode="combined")
     sim.run()
     return sim.time_series
 
@@ -55,26 +53,25 @@ def generate_dataset(
     all_raw: List[np.ndarray] = []
 
     scenarios = [
-        (n, load, pat, mode)
+        (n, load, pat)
         for n in SCENARIO_GRID["n_stations"]
         for load in SCENARIO_GRID["traffic_load"]
         for pat in SCENARIO_GRID["traffic_pattern"]
-        for mode in SCENARIO_GRID["mode"]
     ]
     if max_scenarios:
         scenarios = scenarios[:max_scenarios]
 
-    for idx, (n, load, pat, mode) in enumerate(scenarios):
+    for idx, (n, load, pat) in enumerate(scenarios):
         for rep in range(n_repeats):
             seed = idx * 100 + rep
             try:
-                samples = generate_scenario(n, load, pat, mode, sim_time, seed)
+                samples = generate_scenario(n, load, pat, sim_time, seed)
                 if len(samples) < seq_in + seq_out:
                     continue
                 arr = samples_to_array(samples)
                 all_raw.append(arr)
             except Exception as e:
-                print(f"Scenario {n}/{load}/{pat}/{mode} rep={rep} failed: {e}")
+                print(f"Scenario n={n} load={load} pat={pat} rep={rep} failed: {e}")
 
     if not all_raw:
         raise RuntimeError("No scenarios generated successfully.")

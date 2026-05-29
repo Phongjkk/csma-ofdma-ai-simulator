@@ -1,10 +1,15 @@
-"""Mode 3 — Hybrid CSMA/CA + OFDMA (802.11ax style)."""
+"""CSMA/CA + OFDMA kết hợp theo chuẩn IEEE 802.11ax (Wi-Fi 6/7).
+
+OFDMA không thay thế mà bổ sung cho CSMA/CA:
+- AP dùng CSMA/CA để cạnh tranh kênh, sau đó phát Trigger Frame
+- Các STA truyền song song trên các Resource Unit khác nhau (không xung đột)
+"""
 from simulator.config import SimConfig
 from simulator.core.simulator import Simulator
 
 
 def run_combined(cfg: SimConfig) -> dict:
-    """Run hybrid CSMA/CA + OFDMA simulation and return results dict."""
+    """Chạy mô phỏng CSMA/CA + OFDMA kết hợp, trả về kết quả dict."""
     sim = Simulator(cfg, mode="combined")
     sim.run()
     return sim.get_results()
@@ -27,3 +32,8 @@ def run_combined_scenario(
         n_ru=n_ru,
     )
     return run_combined(cfg)
+
+
+# Alias ngắn gọn
+run = run_combined
+run_scenario = run_combined_scenario

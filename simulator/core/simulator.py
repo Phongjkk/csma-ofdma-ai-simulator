@@ -241,12 +241,15 @@ class Simulator:
             "summary": {
                 "throughput_mbps": summary.throughput_mbps,
                 "latency_mean_ms": summary.latency_mean_ms,
+                "latency_p50_ms": summary.latency_p50_ms,
                 "latency_p99_ms": summary.latency_p99_ms,
                 "collision_rate": summary.collision_rate,
                 "fairness_index": summary.fairness_index,
                 "channel_util": summary.channel_util,
+                "channel_occupancy": summary.channel_occupancy,
                 "total_success": summary.total_success,
                 "total_collisions": summary.total_collisions,
+                "dropped_overflow": sum(s.dropped_overflow for s in self._stations.values()),
             },
             "time_series": [
                 {

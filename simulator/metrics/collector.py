@@ -26,10 +26,13 @@ class SimMetrics:
     latency_p99_ms: float = 0.0
     collision_rate: float = 0.0
     fairness_index: float = 1.0
-    channel_util: float = 0.0
+    channel_util: float = 0.0      # data efficiency = success_bits / (sim_time * capacity)
+    channel_occupancy: float = 0.0 # actual busy time = (success_tx + collision_tx) / sim_time
     total_success: int = 0
     total_collisions: int = 0
     total_transmissions: int = 0
+    dropped_overflow: int = 0
+    latency_p50_ms: float = 0.0
 
 
 class MetricsCollector:
@@ -96,20 +99,33 @@ class MetricsCollector:
 
         latencies = [p.latency for p in self._completed if p.latency > 0]
         lat_mean = float(np.mean(latencies)) if latencies else 0.0
+        lat_p50 = float(np.percentile(latencies, 50)) if latencies else 0.0
         lat_p99 = float(np.percentile(latencies, 99)) if latencies else 0.0
 
         total_tx = self._n_transmissions
         col_rate = self._n_collisions / total_tx if total_tx > 0 else 0.0
+
         cap_bits = self._get_capacity_bits(self._sim_time)
+        # channel_util = data efficiency (success bits / raw capacity)
         util = min(1.0, total_bits / cap_bits) if cap_bits > 0 else 0.0
+
+        # channel_occupancy = fraction of time channel is physically busy
+        # = (success_tx_time + collision_tx_time) / sim_time
+        from simulator.config import SimConfig
+        cfg = SimConfig()
+        success_time = len(self._completed) * cfg.data_tx_time()
+        collision_time = self._n_collisions * cfg.data_tx_time()
+        occupancy = min(1.0, (success_time + collision_time) / self._sim_time)
 
         return SimMetrics(
             throughput_mbps=throughput,
             latency_mean_ms=lat_mean,
+            latency_p50_ms=lat_p50,
             latency_p99_ms=lat_p99,
             collision_rate=col_rate,
             fairness_index=self._jain_index(),
             channel_util=util,
+            channel_occupancy=occupancy,
             total_success=len(self._completed),
             total_collisions=self._n_collisions,
             total_transmissions=total_tx,

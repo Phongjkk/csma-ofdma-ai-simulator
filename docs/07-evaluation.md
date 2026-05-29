@@ -57,17 +57,29 @@ Bộ mô phỏng đạt mục tiêu: 30 giây hoạt động mạng hoàn thành
 
 ### 7.2.2. Diễn biến các chỉ số theo mức tải
 
-| Mức tải | Throughput (Mbps) | Latency P99 (ms) | Collision (%) | Fairness | Channel util (%) |
-|:-------:|:-----------------:|:----------------:|:-------------:|:--------:|:----------------:|
-| Thấp | **4.880** | **0.73** | **0.00** | **0.994** | **9.0** |
-| Trung bình | **12.264** | **1.16** | **0.60** | **0.998** | **22.7** |
-| Cao | **34.718** | **1 599.69** | **44.1** | **0.999** | **64.3** |
+_(n = 20 STA, sim_time = 8 s, trung bình 3 lần chạy)_
+
+| Mức tải | Throughput (Mbps) | Latency P50 (ms) | Latency P99 (ms) | Collision (%) | Util (%) | Occupancy (%) | Dropped |
+|:-------:|:-----------------:|:----------------:|:----------------:|:-------------:|:--------:|:-------------:|:-------:|
+| Thấp | **4.80** | **0.36** | **0.70** | **0.0** | **8.9** | **8.9** | **0** |
+| Trung bình | **12.30** | **0.37** | **1.16** | **0.5** | **22.8** | **22.9** | **0** |
+| Cao | **34.57** | **1 148** | **1 557** | **44.6** | **64.0** | **100.0** | **5 661** |
+
+> **Giải thích hai chỉ số channel:**
+> - **Util (data efficiency)** = bits hữu ích / (sim_time × data_rate) — đo hiệu suất sử dụng băng thông.
+> - **Occupancy (channel busy)** = (thời gian TX thành công + thời gian TX collision) / sim_time — đo thực sự kênh bận bao lâu.
+>
+> Ở tải cao: util = 64% nhưng occupancy = 100% — kênh bận **hoàn toàn**, nhưng 36% thời gian bận đó bị lãng phí do xung đột (44.6% collision). Đây là lý do throughput đạt trần (~35 Mbps) nhưng latency vọt lên 1 500+ ms.
 
 **Nhận xét:**
 
-- **Mức thấp**: Thông lượng thấp (4.88 Mbps), độ trễ rất nhỏ (< 1 ms), không có xung đột — kênh chủ yếu nhàn rỗi (util = 9%).
-- **Mức trung bình**: Thông lượng tăng gấp ~2.5 lần, độ trễ vẫn chấp nhận được (< 2 ms), tỷ lệ xung đột thấp (0.6%).
-- **Mức cao**: Kênh bão hòa — thông lượng đạt ~35 Mbps (gần giới hạn lý thuyết ~38 Mbps), nhưng độ trễ tăng vọt (~1 600 ms) và tỷ lệ xung đột rất cao (44.1%). Đây là tình huống cần cảnh báo sớm của hệ AI.
+- **Mức thấp**: P99 = 0.70 ms, không xung đột, occupancy = 8.9% — kênh gần như nhàn rỗi.
+- **Mức trung bình**: P99 = 1.16 ms, xung đột ở mức thấp (0.5%), hiệu năng tốt.
+- **Mức cao**: Hệ thống **quá tải thực sự** (λ×n = 200×20 = 4 000 pkt/s > capacity ≈ 2 857 pkt/s):
+  - Occupancy = 100% → kênh bão hòa hoàn toàn.
+  - 5 661 gói bị drop do hàng đợi tràn (MAX_QUEUE = 200 gói/STA).
+  - Các gói vượt qua được chờ đợi lâu trong hàng đợi → P50 = 1 148 ms, P99 = 1 557 ms.
+  - **Không phải bug**: đây là hành vi đúng của M/D/1 overloaded queuing system.
 
 ### 7.2.3. So sánh với giới hạn lý thuyết CSMA/CA
 

@@ -109,6 +109,7 @@ class DCFStation:
         # Binary exponential backoff
         self._cw = min(self._cw * 2 + 1, self._cfg.cw_max)
         if self._current_pkt:
+            self._current_pkt.retries += 1  # track packet-level retry count
             self._queue.insert(0, self._current_pkt)
             self._current_pkt = None
         self._state = DCFState.IDLE

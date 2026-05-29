@@ -17,6 +17,10 @@ Bảng dưới so sánh thông lượng đo từ bộ mô phỏng (chế độ c
 | 20 | 29.728 | 34.908 | 17.4 |
 | 30 | 28.238 | 32.570 | 15.3 |
 | 50 | 26.222 | 29.784 | 13.6 |
+| 75 | 24.479 | — | — |
+| 100 | 23.146 | — | — |
+
+![Hình 7.1 — Kiểm chứng Bianchi](figures/fig7_1_bianchi.png)
 
 **Nhận xét:** Sai số dao động trong khoảng 13–18%, cao hơn tiêu chí lý tưởng 3%. Nguyên nhân chủ yếu là sự khác biệt về mô hình:
 
@@ -65,6 +69,8 @@ _(n = 20 STA, sim_time = 8 s, trung bình 3 lần chạy)_
 | Trung bình | **12.30** | **0.37** | **1.16** | **0.5** | **22.8** | **22.9** | **0** |
 | Cao | **34.57** | **1 148** | **1 557** | **44.6** | **64.0** | **100.0** | **5 661** |
 
+![Hình 7.2 — Hiệu năng theo mức tải](figures/fig7_2_performance.png)
+
 > **Giải thích hai chỉ số channel:**
 > - **Util (data efficiency)** = bits hữu ích / (sim_time × data_rate) — đo hiệu suất sử dụng băng thông.
 > - **Occupancy (channel busy)** = (thời gian TX thành công + thời gian TX collision) / sim_time — đo thực sự kênh bận bao lâu.
@@ -87,19 +93,6 @@ Hệ CSMA/CA + OFDMA kết hợp đạt thông lượng tối đa ~34.7 Mbps ở
 
 - **Giảm xung đột cho downlink**: AP cạnh tranh kênh một lần, sau đó phân phối song song cho nhiều STA qua các Resource Unit khác nhau — collision_rate trong các chu kỳ OFDMA = 0%.
 - **Fairness cao hơn**: Jain's index = 0.994–0.999, cho thấy tài nguyên được phân phối đều.
-
-```
-Throughput
-(Mbps)
-   ▲
-35 │          ────────── CSMA/CA + OFDMA (kết hợp)
-   │       ──/
-12 │    ──/
-   │──/
- 5 │
-   └─────────────────────►  Mức tải
-      Thấp  Trung  Cao
-```
 
 ## 7.3. Đánh giá mô hình AI
 
@@ -124,6 +117,8 @@ Tập kiểm thử: 42 cửa sổ trượt (mỗi cửa sổ = 50 bước × 100
 | 3 giây | 0.05644 | 9.38 |
 | 5 giây | 0.08194 | 11.80 |
 
+![Hình 7.3 — Độ chính xác theo tầm dự đoán](figures/fig7_3_ai_horizon.png)
+
 **Nhận xét:** Độ chính xác giảm dần theo tầm dự đoán — xu hướng đúng với lý thuyết. Ở tầm 5 giây, MAPE = 11.8% vẫn đủ để đưa ra cảnh báo sớm có giá trị thực tiễn (ngưỡng chấp nhận < 20%).
 
 ## 7.4. Đánh giá hệ thống cảnh báo
@@ -139,6 +134,8 @@ Kịch bản kiểm thử: 8 trường hợp (n ∈ {10, 20} × load ∈ {0.3, 0
 
 **Phân tích:** TP = 4, FP = 4, FN = 0, TN = 0.
 
+![Hình 7.4 — Đánh giá hệ thống cảnh báo](figures/fig7_4_alert.png)
+
 - **Recall = 1.0**: Hệ thống phát hiện được **tất cả** các sự kiện quá tải — không bỏ sót.
 - **FPR = 1.0**: Tất cả kịch bản không quá tải cũng kích hoạt cảnh báo CRITICAL — ngưỡng hiện tại quá nhạy.
 
@@ -153,8 +150,8 @@ Kịch bản kiểm thử: 8 trường hợp (n ∈ {10, 20} × load ∈ {0.3, 0
 | Mô phỏng CSMA/CA đúng | Đúng xu hướng Bianchi | ✅ Xu hướng đúng (sai số 13–18%) |
 | Mô phỏng OFDMA | Truyền song song, không xung đột | ✅ collision_rate = 0 trong OFDMA cycles |
 | Đo 5 chỉ số hiệu năng | Đầy đủ 5 chỉ số | ✅ throughput, latency P99, collision, fairness, util |
-| Hệ kết hợp hoạt động | Throughput tăng theo tải | ✅ 4.88 → 12.26 → 34.72 Mbps |
+| Hệ kết hợp hoạt động | Throughput tăng theo tải | ✅ 4.80 → 12.30 → 34.57 Mbps |
 | Sinh tập dữ liệu | Có dữ liệu chuỗi thời gian | ✅ 147 windows (train+val+test) |
-| Mô hình AI dự đoán | MAE < 20% | ✅ MAPE = 11.8% ở tầm 5s (MA baseline) |
+| Mô hình AI dự đoán | MAPE < 20% | ✅ MAPE = 11.8% ở tầm 5s (MA baseline) |
 | Cảnh báo sớm | Recall cao | ✅ Recall = 1.0 (không bỏ sót quá tải) |
 | Giao diện trực quan | Dashboard hoạt động | ✅ Streamlit 7 trang |

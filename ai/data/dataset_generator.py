@@ -17,7 +17,7 @@ SCENARIO_GRID = {
     "n_stations": [5, 10, 20, 30, 50, 75, 100],
     "traffic_load": [0.2, 0.5, 0.8, 1.0],
     "traffic_pattern": ["poisson", "cbr", "ramp", "spike", "oscillate"],
-    "mode": ["su", "ofdma", "combined"],
+    "mode": ["su", "ofdma"],
 }
 
 

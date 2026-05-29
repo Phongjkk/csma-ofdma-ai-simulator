@@ -6,9 +6,8 @@ st.title("🔬 Run Simulation")
 
 with st.sidebar:
     st.header("Simulation Parameters")
-    mode = st.selectbox("Mode", ["su", "ofdma", "combined"],
-                        format_func=lambda x: {"su": "CSMA/CA only", "ofdma": "OFDMA only",
-                                               "combined": "Combined (802.11ax)"}[x])
+    mode = st.selectbox("Mode", ["su", "ofdma"],
+                        format_func=lambda x: {"su": "CSMA/CA", "ofdma": "OFDMA"}[x])
     n_stations = st.slider("Number of Stations", 1, 100, 10)
     traffic_load = st.slider("Traffic Load", 0.1, 1.0, 0.5, 0.05)
     sim_time = st.slider("Simulation Time (s)", 5.0, 60.0, 30.0, 5.0)

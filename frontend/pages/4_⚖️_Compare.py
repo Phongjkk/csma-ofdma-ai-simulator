@@ -10,25 +10,22 @@ with st.sidebar:
     traffic_load = st.slider("Traffic Load", 0.1, 1.0, 0.7, 0.05)
     sim_time = st.slider("Sim Time (s)", 5.0, 30.0, 15.0, 5.0)
     pattern = st.selectbox("Traffic Pattern", ["poisson", "cbr", "ramp"])
-    run_all = st.button("▶ Run All 3 Modes", type="primary")
+    run_all = st.button("▶ Run Both Modes", type="primary")
 
 if run_all:
     from simulator.config import SimConfig
     from simulator.modes.mode_su import run_su
     from simulator.modes.mode_ofdma import run_ofdma
-    from simulator.modes.mode_combined import run_combined
 
     results = {}
     cfg = SimConfig(n_stations=n_stations, traffic_load=traffic_load,
                     sim_time=sim_time, traffic_pattern=pattern, seed=42)
-    with st.spinner("Running SU (CSMA/CA)..."):
+    with st.spinner("Running CSMA/CA..."):
         results["CSMA/CA"] = run_su(cfg)["summary"]
     with st.spinner("Running OFDMA..."):
         results["OFDMA"] = run_ofdma(cfg)["summary"]
-    with st.spinner("Running Combined..."):
-        results["Combined"] = run_combined(cfg)["summary"]
     st.session_state["compare_results"] = results
-    st.success("All modes complete!")
+    st.success("Both modes complete!")
 
 if "compare_results" in st.session_state:
     results = st.session_state["compare_results"]
@@ -53,7 +50,7 @@ if "compare_results" in st.session_state:
 
         st.subheader("Bar Charts")
         fig = make_subplots(rows=1, cols=len(metrics), subplot_titles=labels)
-        colors = ["#636EFA", "#EF553B", "#00CC96"]
+        colors = ["#636EFA", "#EF553B"]
         for j, (m, lbl) in enumerate(zip(metrics, labels)):
             for i, mode in enumerate(modes):
                 fig.add_trace(
@@ -66,4 +63,4 @@ if "compare_results" in st.session_state:
     except ImportError:
         pass
 else:
-    st.info("Configure parameters in the sidebar and click **Run All 3 Modes**.")
+    st.info("Configure parameters in the sidebar and click **Run Both Modes**.")

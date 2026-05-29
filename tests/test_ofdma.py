@@ -7,7 +7,6 @@ from simulator.network.packet import Packet, reset_counter
 from simulator.metrics.collector import MetricsCollector
 from simulator.mac.ofdma import OFDMAScheduler, RUAllocator
 from simulator.modes.mode_ofdma import run_ofdma_scenario
-from simulator.modes.mode_combined import run_combined_scenario
 
 
 class TestRUAllocator(unittest.TestCase):
@@ -77,16 +76,14 @@ class TestOFDMAMode(unittest.TestCase):
         result = run_ofdma_scenario(n_stations=10, traffic_load=0.5, sim_time=5.0, seed=0)
         self.assertEqual(result["summary"]["collision_rate"], 0.0)
 
-    def test_combined_better_than_su_high_load(self):
+    def test_ofdma_better_collision_than_csma_high_load(self):
         from simulator.modes.mode_su import run_su_scenario
         n, load = 30, 0.8
         su = run_su_scenario(n, load, sim_time=10.0, seed=42)
-        combined = run_combined_scenario(n, load, sim_time=10.0, seed=42)
-        # Combined should have less or equal collision rate
-        self.assertLessEqual(
-            combined["summary"]["collision_rate"],
-            su["summary"]["collision_rate"] + 0.05,
-        )
+        ofdma = run_ofdma_scenario(n, load, sim_time=10.0, seed=42)
+        # OFDMA should have zero collision (no contention)
+        self.assertEqual(ofdma["summary"]["collision_rate"], 0.0)
+        self.assertGreaterEqual(su["summary"]["collision_rate"], 0.0)
 
 
 if __name__ == "__main__":

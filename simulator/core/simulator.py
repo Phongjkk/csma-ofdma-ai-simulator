@@ -20,7 +20,7 @@ class Simulator:
 
     def __init__(self, cfg: SimConfig, mode: str = "su") -> None:
         """
-        mode: 'su' = CSMA/CA only, 'ofdma' = OFDMA only, 'combined' = hybrid
+        mode: 'su' = CSMA/CA only, 'ofdma' = OFDMA only
         """
         self._cfg = cfg
         self._mode = mode
@@ -83,7 +83,7 @@ class Simulator:
             t += self._cfg.metrics_interval_s
 
         # OFDMA mode: schedule first trigger frame
-        if self._mode in ("ofdma", "combined"):
+        if self._mode == "ofdma":
             self._scheduler.schedule(0.0, EventType.TRIGGER_FRAME, {})
 
         self._scheduler.schedule(self._cfg.sim_time, EventType.SIM_END, {})
@@ -103,7 +103,7 @@ class Simulator:
             # In pure OFDMA mode, AP collects all packets
             self._ap.push_packet(sid, pkt)
         else:
-            # SU or combined: station uses DCF
+            # CSMA/CA: station uses DCF
             sta.receive_packet(pkt)
             if sta.state == DCFState.IDLE and sta.has_packets():
                 difs_end = sta.start_difs_sensing(event.time)

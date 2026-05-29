@@ -1,4 +1,4 @@
-"""Run all 9 scenarios (3 modes × 3 load levels), N repeats each."""
+"""Run all scenarios (2 modes × 3 load levels), N repeats each."""
 import json
 import os
 from typing import Dict, List
@@ -6,10 +6,9 @@ from typing import Dict, List
 from simulator.config import SimConfig
 from simulator.modes.mode_su import run_su
 from simulator.modes.mode_ofdma import run_ofdma
-from simulator.modes.mode_combined import run_combined
 from analysis.statistics import aggregate_runs
 
-MODES = ["su", "ofdma", "combined"]
+MODES = ["su", "ofdma"]
 LOADS = [0.2, 0.5, 0.8]
 STATION_COUNTS = [5, 10, 20, 30, 50, 75, 100]
 
@@ -29,12 +28,9 @@ def run_scenario(
         traffic_pattern=traffic_pattern,
         seed=seed,
     )
-    if mode == "su":
-        return run_su(cfg)
-    elif mode == "ofdma":
+    if mode == "ofdma":
         return run_ofdma(cfg)
-    else:
-        return run_combined(cfg)
+    return run_su(cfg)
 
 
 def run_all_scenarios(
@@ -43,7 +39,7 @@ def run_all_scenarios(
     output_path: str = "results/raw/all_scenarios.json",
     n_stations_list: List[int] = None,
 ) -> List[dict]:
-    """Run 3 modes × len(LOADS) loads × len(STATION_COUNTS) station counts × n_repeats."""
+    """Run 2 modes × len(LOADS) loads × len(STATION_COUNTS) station counts × n_repeats."""
     stations = n_stations_list or STATION_COUNTS
     all_results: List[dict] = []
     total = len(MODES) * len(LOADS) * len(stations) * n_repeats

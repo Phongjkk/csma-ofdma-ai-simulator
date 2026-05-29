@@ -19,7 +19,7 @@ if run_eval:
         from ai.data.preprocessor import samples_to_array, MinMaxScaler, build_windows
 
         cfg = SimConfig(n_stations=20, traffic_load=0.7, sim_time=60.0, seed=99)
-        sim = Simulator(cfg, mode="combined")
+        sim = Simulator(cfg, mode="su")
         sim.run()
         data = samples_to_array(sim.time_series)
         scaler = MinMaxScaler()

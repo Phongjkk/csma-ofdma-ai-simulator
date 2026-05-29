@@ -9,7 +9,8 @@ with st.sidebar:
     st.header("Prediction Settings")
     n_stations = st.slider("Stations", 10, 100, 30)
     traffic_load = st.slider("Load", 0.3, 1.0, 0.8, 0.05)
-    mode = st.selectbox("Mode", ["combined", "su", "ofdma"])
+    mode = st.selectbox("Mode", ["su", "ofdma"],
+                        format_func=lambda x: {"su": "CSMA/CA", "ofdma": "OFDMA"}[x])
     util_threshold = st.slider("Overload Threshold (util)", 0.7, 0.99, 0.85, 0.01)
     run_btn = st.button("▶ Run Prediction Demo", type="primary")
 

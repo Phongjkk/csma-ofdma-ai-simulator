@@ -17,8 +17,6 @@ Bảng dưới so sánh thông lượng đo từ bộ mô phỏng (chế độ c
 | 20 | 29.728 | 34.908 | 17.4 |
 | 30 | 28.238 | 32.570 | 15.3 |
 | 50 | 26.222 | 29.784 | 13.6 |
-| 75 | 24.479 | — | — |
-| 100 | 23.146 | — | — |
 
 **Nhận xét:** Sai số dao động trong khoảng 13–18%, cao hơn tiêu chí lý tưởng 3%. Nguyên nhân chủ yếu là sự khác biệt về mô hình:
 

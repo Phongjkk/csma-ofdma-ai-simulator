@@ -128,19 +128,28 @@ class Simulator:
         if not sta.has_packets():
             return
 
-        if not self._channel.is_idle(now):
-            # Channel busy: re-sense after channel clears
-            resume = self._channel.busy_until() + self._cfg.difs_s
-            self._scheduler.schedule(resume, EventType.BACKOFF_END,
-                                     {"station_id": sid, "phase": "difs"})
-            return
+        channel_busy = not self._channel.is_idle(now)
 
         if phase == "difs":
+            if channel_busy:
+                resume = self._channel.busy_until() + self._cfg.difs_s
+                self._scheduler.schedule(resume, EventType.BACKOFF_END,
+                                         {"station_id": sid, "phase": "difs"})
+                return
             bo_end = sta.start_backoff(now)
             self._scheduler.schedule(bo_end, EventType.BACKOFF_END,
                                      {"station_id": sid, "phase": "backoff"})
         else:
-            # Backoff expired: start transmission
+            # Backoff expired.
+            # If channel busy AND became busy BEFORE now → another station won the
+            # slot earlier; freeze backoff and re-sense after DIFS.
+            # If channel busy AND became busy AT now → simultaneous transmission
+            # (collision); proceed so TX_END can detect it.
+            if channel_busy and self._channel.busy_since() < now:
+                resume = self._channel.busy_until() + self._cfg.difs_s
+                self._scheduler.schedule(resume, EventType.BACKOFF_END,
+                                         {"station_id": sid, "phase": "difs"})
+                return
             tx_end = sta.start_transmission(now)
             self._scheduler.schedule(tx_end, EventType.TX_END, {"station_id": sid})
 
@@ -149,9 +158,14 @@ class Simulator:
         sta = self._stations[sid]
         now = event.time
 
-        # Check for collision
+        # Guard: if state is no longer TRANSMITTING, this TX_END was already
+        # handled when another colliding station's TX_END fired first.
+        if sta.state != DCFState.TRANSMITTING:
+            return
+
+        # Check for collision: 2+ stations still active at this instant
         colliders = self._channel.detect_collision(now - 1e-12)
-        if sid in colliders and len(colliders) >= 2:
+        if len(colliders) >= 2:
             for csid in colliders:
                 if csid in self._stations:
                     survived = self._stations[csid].on_collision(now)
@@ -160,7 +174,7 @@ class Simulator:
                         self._scheduler.schedule(difs_end, EventType.BACKOFF_END,
                                                  {"station_id": csid, "phase": "difs"})
         else:
-            # Successful transmission
+            # Successful single transmission
             ack_time = sta.on_tx_complete(now)
             self._scheduler.schedule(ack_time, EventType.ACK_RECEIVED, {"station_id": sid})
 
@@ -179,15 +193,19 @@ class Simulator:
         now = event.time
         if now >= self._cfg.sim_time:
             return
-        end_time, _ = self._ap.run_ofdma_cycle(now)
-        if end_time < self._cfg.sim_time:
-            self._scheduler.schedule(end_time, EventType.OFDMA_TX_END, {"cycle_end": end_time})
+        end_time, pkts = self._ap.run_ofdma_cycle(now)
+        if not pkts:
+            # AP queue empty: wait one metrics interval before retrying
+            next_tf = now + self._cfg.metrics_interval_s
+        else:
+            next_tf = end_time
+        if next_tf < self._cfg.sim_time:
+            self._scheduler.schedule(next_tf, EventType.OFDMA_TX_END, {"cycle_end": next_tf})
 
     def _on_ofdma_tx_end(self, event: Event) -> None:
         now = event.time
         if now >= self._cfg.sim_time:
             return
-        # Schedule next trigger frame immediately after channel is free
         next_tf = max(now, self._channel.busy_until())
         if next_tf < self._cfg.sim_time:
             self._scheduler.schedule(next_tf, EventType.TRIGGER_FRAME, {})

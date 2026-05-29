@@ -1,7 +1,6 @@
 """STA: bounded queue, DCF contention-window (BEB) state machine."""
 import random
-from collections import deque
-from typing import Deque, List, Optional
+from typing import List, Optional
 
 from simulator.config import SimConfig
 from simulator.network.packet import Packet
@@ -10,7 +9,7 @@ from simulator.metrics.collector import MetricsCollector
 from simulator.mac.csma_ca import DCFStation, DCFState
 
 
-MAX_QUEUE_SIZE = 50
+MAX_QUEUE_SIZE = 200
 
 
 class Station:
@@ -24,7 +23,6 @@ class Station:
         self._collector = collector
         self._rng = rng
         self._dcf = DCFStation(station_id, cfg, channel, collector, rng)
-        self._queue: List[Packet] = []
         self._dropped_overflow: int = 0
 
     # ------------------------------------------------------------------
@@ -32,11 +30,10 @@ class Station:
     # ------------------------------------------------------------------
 
     def receive_packet(self, pkt: Packet) -> bool:
-        """Try to enqueue a packet. Returns False if queue is full (dropped)."""
-        if len(self._queue) >= MAX_QUEUE_SIZE:
+        """Enqueue packet into DCF queue. Returns False if full (dropped)."""
+        if self._dcf.queue_length >= MAX_QUEUE_SIZE:
             self._dropped_overflow += 1
             return False
-        self._queue.append(pkt)
         self._dcf.enqueue(pkt)
         return True
 
@@ -81,7 +78,6 @@ class Station:
     def dropped_overflow(self) -> int:
         return self._dropped_overflow
 
-    # OFDMA uplink queue access
     @property
     def ofdma_queue(self) -> List[Packet]:
-        return self._queue
+        return self._dcf._queue

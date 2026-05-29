@@ -133,34 +133,60 @@ class DCFStation:
 
 
 def compute_bianchi_throughput(cfg: SimConfig, n: int) -> float:
-    """Analytical Bianchi throughput for saturated CSMA/CA (Mbps)."""
+    """Analytical Bianchi throughput for saturated CSMA/CA (Mbps).
+
+    Solves the nonlinear system {τ, p} using scipy.optimize.fsolve for
+    numerical stability across all n values.
+    """
     import math
-    m = math.ceil(math.log2((cfg.cw_max + 1) / (cfg.cw_min + 1)))
+    try:
+        from scipy.optimize import fsolve
+    except ImportError:
+        return 0.0
 
-    # Newton-Raphson to solve τ and p
-    tau = 2.0 / (cfg.cw_min + 1)
-    for _ in range(200):
-        p = 1 - (1 - tau) ** (n - 1)
-        cw_avg = sum(
-            ((2 ** i * cfg.cw_min + 1) / 2) * (1 - p) * (p ** i)
-            for i in range(m + 1)
-        )
-        tau_new = 1.0 / (1 + cw_avg)
-        if abs(tau_new - tau) < 1e-9:
-            break
-        tau = tau_new
+    W = cfg.cw_min       # W = CW_min
+    m = math.ceil(math.log2((cfg.cw_max + 1) / (W + 1)))  # max backoff stage
 
-    p = 1 - (1 - tau) ** (n - 1)
-    Ptr = 1 - (1 - tau) ** n           # prob channel busy
+    def equations(x):
+        tau, p = x
+        if p <= 0 or p >= 1 or tau <= 0 or tau >= 1:
+            return [1e6, 1e6]
+        # τ formula (Bianchi eq. 11)
+        num = 2 * (1 - 2 * p)
+        denom = (1 - 2 * p) * (W + 1) + p * W * (1 - (2 * p) ** m)
+        tau_eq = num / denom if denom != 0 else 1e6
+        # p formula
+        p_eq = 1 - (1 - tau) ** (n - 1)
+        return [tau - tau_eq, p - p_eq]
+
+    # Try multiple starting points to find the physical solution
+    best = None
+    for tau0 in [0.1, 0.2, 0.05, 0.3, 0.5]:
+        for p0 in [0.1, 0.3, 0.5, 0.7]:
+            try:
+                sol = fsolve(equations, [tau0, p0], full_output=True)
+                tau_s, p_s = sol[0]
+                if 0 < tau_s < 1 and 0 < p_s < 1:
+                    residual = sum(x**2 for x in sol[1]["fvec"])
+                    if best is None or residual < best[2]:
+                        best = (tau_s, p_s, residual)
+            except Exception:
+                continue
+
+    if best is None or best[0] <= 0 or best[1] <= 0:
+        return 0.0
+
+    tau, p = best[0], best[1]
+    Ptr = 1 - (1 - tau) ** n
     Ps = n * tau * (1 - tau) ** (n - 1) / Ptr if Ptr > 0 else 0
 
     Ts = cfg.data_tx_time() + cfg.sifs_s + cfg.ack_tx_time() + cfg.difs_s
     Tc = cfg.data_tx_time() + cfg.difs_s
-
     payload_bits = cfg.payload_bytes * 8
-    S = (Ps * Ptr * payload_bits) / (
-        (1 - Ptr) * cfg.slot_time_s
-        + Ptr * Ps * Ts
-        + Ptr * (1 - Ps) * Tc
-    )
-    return S / 1e6
+
+    denom = ((1 - Ptr) * cfg.slot_time_s
+             + Ptr * Ps * Ts
+             + Ptr * (1 - Ps) * Tc)
+    if denom <= 0:
+        return 0.0
+    return (Ps * Ptr * payload_bits) / denom / 1e6

@@ -25,6 +25,10 @@ class Channel:
     def busy_until(self) -> float:
         return self._busy_until
 
+    def busy_since(self) -> float:
+        """Time when channel most recently became busy (for collision detection)."""
+        return self._last_busy_start
+
     # ------------------------------------------------------------------
     # Transmission management
     # ------------------------------------------------------------------

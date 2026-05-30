@@ -11,8 +11,12 @@ def rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
 
 
-def mape(y_true: np.ndarray, y_pred: np.ndarray, eps: float = 1e-8) -> float:
-    return float(np.mean(np.abs((y_true - y_pred) / (np.abs(y_true) + eps))) * 100)
+def mape(y_true: np.ndarray, y_pred: np.ndarray, min_abs: float = 0.05) -> float:
+    """MAPE chỉ tính trên các mẫu có |y_true| > min_abs để tránh chia cho ~0."""
+    mask = np.abs(y_true) > min_abs
+    if not mask.any():
+        return 0.0
+    return float(np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100)
 
 
 def r2(y_true: np.ndarray, y_pred: np.ndarray) -> float:

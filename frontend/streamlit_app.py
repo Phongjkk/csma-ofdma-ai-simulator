@@ -15,7 +15,7 @@ Welcome to the **IEEE 802.11 CSMA/CA & OFDMA Network Performance Simulator** wit
 Use the sidebar to navigate between pages:
 - **Simulate** — Run a single simulation scenario
 - **Results** — View detailed per-run metrics
-- **Compare** — Compare CSMA/CA vs OFDMA vs Combined modes
+- **Compare** — So sánh hiệu năng ở 3 mức tải (thấp / trung bình / cao)
 - **Live Monitor** — Real-time monitoring dashboard
 - **AI Prediction** — LSTM overload forecasting
 - **Model Evaluation** — Compare AI model accuracy

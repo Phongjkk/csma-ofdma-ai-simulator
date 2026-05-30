@@ -1,0 +1,23 @@
+{
+  "LSTM": {
+    "mae": 0.18043,
+    "rmse": 0.37877,
+    "mape": 31.01,
+    "r2": 0.2453,
+    "note": "AI model - deep learning (PyTorch, 2-layer LSTM, hidden=64)"
+  },
+  "MovingAverage": {
+    "mae": 0.01081,
+    "rmse": 0.02785,
+    "mape": 5.24,
+    "r2": 0.9959,
+    "note": "Baseline - statistical (NOT AI)"
+  },
+  "LinearRegression": {
+    "mae": 0.16548,
+    "rmse": 0.37558,
+    "mape": 25.10,
+    "r2": 0.258,
+    "note": "Baseline - statistical (NOT AI)"
+  }
+}

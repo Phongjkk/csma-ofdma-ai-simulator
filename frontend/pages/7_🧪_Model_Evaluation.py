@@ -1,86 +1,133 @@
-"""Page 7 — Model evaluation: metrics table, ROC, confusion matrix."""
+"""Page 7 — So sánh LSTM (AI) vs các baseline (Moving Average, Linear Regression)."""
 import streamlit as st
 import numpy as np
+import os
 
 st.set_page_config(page_title="Model Evaluation", page_icon="🧪", layout="wide")
-st.title("🧪 Model Evaluation")
+st.title("🧪 Đánh giá mô hình AI")
 
-with st.sidebar:
-    st.header("Evaluation Settings")
-    n_samples = st.slider("Test Windows", 50, 500, 100)
-    seq_in = st.number_input("Input Sequence Length", 10, 100, 50)
-    seq_out = st.number_input("Output Sequence Length", 5, 100, 50)
-    run_eval = st.button("▶ Evaluate Models", type="primary")
+st.markdown("""
+Trang này so sánh **LSTM (mô hình AI thực sự)** với hai baseline thống kê:
+- **Moving Average** — trung bình trượt, không phải AI
+- **Linear Regression** — hồi quy tuyến tính, không phải AI
 
-if run_eval:
-    with st.spinner("Generating test data via simulator..."):
-        from simulator.config import SimConfig
-        from simulator.core.simulator import Simulator
-        from ai.data.preprocessor import samples_to_array, MinMaxScaler, build_windows
+LSTM mới là mô hình học sâu (deep learning) thực sự, được huấn luyện trên dữ liệu từ bộ mô phỏng.
+""")
 
-        cfg = SimConfig(n_stations=20, traffic_load=0.7, sim_time=60.0, seed=99)
-        sim = Simulator(cfg, mode="su")
-        sim.run()
-        data = samples_to_array(sim.time_series)
-        scaler = MinMaxScaler()
-        scaled = scaler.fit_transform(data)
-        X, y = build_windows(scaled, int(seq_in), int(seq_out))
-        if len(X) == 0:
-            st.error("Not enough data. Increase sim_time.")
-            st.stop()
-        idx = min(n_samples, len(X))
-        X_test, y_test = X[-idx:], y[-idx:]
+CHECKPOINT = "ai/saved_models/lstm_checkpoint.pt"
+SCALER_PATH = "ai/saved_models/scalers.pkl"
+XTEST_PATH  = "ai/saved_models/X_test.npy"
+YTEST_PATH  = "ai/saved_models/y_test.npy"
+EVAL_PATH   = "ai/saved_models/eval_results.json"
 
-    from ai.models.moving_average import MovingAverageModel
-    from ai.models.linear_regression import LinearRegressionModel
-    from ai.evaluation.comparator import ModelComparator
+# ── Load pre-computed results if available ──────────────────────────────────
+if os.path.exists(EVAL_PATH):
+    import json
+    with open(EVAL_PATH) as f:
+        cached = json.load(f)
+    st.success("Kết quả đánh giá từ lần huấn luyện gần nhất:")
 
-    comparator = ModelComparator()
-
-    with st.spinner("Evaluating Moving Average..."):
-        ma = MovingAverageModel(n_steps=int(seq_out))
-        ma.fit(X_test, y_test)
-        comparator.add("MovingAverage", y_test, ma.predict(X_test))
-
-    with st.spinner("Evaluating Linear Regression..."):
-        lr = LinearRegressionModel(n_steps=int(seq_out))
-        lr.fit(X_test, y_test)
-        comparator.add("LinearRegression", y_test, lr.predict(X_test))
-
-    st.session_state["eval_comparator"] = comparator
-    st.session_state["eval_y_test"] = y_test
-    st.session_state["eval_models"] = {"MovingAverage": ma, "LinearRegression": lr}
-    st.success("Evaluation complete!")
-
-if "eval_comparator" in st.session_state:
-    comparator = st.session_state["eval_comparator"]
-    results = comparator.results
-
-    st.subheader("Model Comparison Table")
     try:
         import pandas as pd
-        rows = [{"Model": name, "MAE": f"{m['mae']:.5f}", "RMSE": f"{m['rmse']:.5f}",
-                 "MAPE": f"{m['mape']:.2f}%", "R²": f"{m['r2']:.4f}"}
-                for name, m in results.items()]
-        st.dataframe(pd.DataFrame(rows).set_index("Model"), use_container_width=True)
+        rows = []
+        labels = {"LSTM": "**LSTM (AI)**", "MovingAverage": "Moving Average (baseline)",
+                  "LinearRegression": "Linear Regression (baseline)"}
+        for name, m in cached.items():
+            rows.append({
+                "Mô hình": labels.get(name, name),
+                "MAE":  f"{m.get('mae', 0):.5f}",
+                "RMSE": f"{m.get('rmse', 0):.5f}",
+                "MAPE (%)": f"{m.get('mape', 0):.2f}",
+                "R²":  f"{m.get('r2', 0):.4f}",
+            })
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     except ImportError:
-        for name, m in results.items():
-            st.write(f"**{name}**: MAE={m['mae']:.5f}, RMSE={m['rmse']:.5f}")
+        st.json(cached)
 
-    st.subheader("MAE by Feature")
-    from ai.data.preprocessor import FEATURE_COLS
+    # Bar chart so sánh MAE
     try:
         import plotly.graph_objects as go
-        fig = go.Figure()
-        for model_name, m in results.items():
-            mae_vals = [m.get(f"mae_{f}", 0) for f in FEATURE_COLS]
-            fig.add_trace(go.Bar(name=model_name, x=FEATURE_COLS, y=mae_vals))
-        fig.update_layout(barmode="group", title="MAE per Feature", height=350)
-        st.plotly_chart(fig, use_container_width=True)
-    except ImportError:
-        pass
+        names  = list(cached.keys())
+        maes   = [cached[n].get('mae',0) for n in names]
+        r2s    = [cached[n].get('r2',0)  for n in names]
+        colors = {'LSTM': '#2563EB', 'MovingAverage': '#6B7280', 'LinearRegression': '#6B7280'}
 
-    best = comparator.best_model("mae")
-    st.info(f"Best model by MAE: **{best}**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig = go.Figure(go.Bar(
+                x=names, y=maes,
+                marker_color=[colors.get(n, '#6B7280') for n in names],
+                text=[f"{v:.5f}" for v in maes], textposition='outside',
+            ))
+            fig.update_layout(title="MAE theo mô hình (thấp hơn = tốt hơn)",
+                              yaxis_title="MAE", height=350,
+                              annotations=[dict(x='LSTM', y=max(maes)*0.5,
+                                               text="AI model", showarrow=False,
+                                               font=dict(color='#2563EB', size=11))])
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            fig2 = go.Figure(go.Bar(
+                x=names, y=r2s,
+                marker_color=[colors.get(n, '#6B7280') for n in names],
+                text=[f"{v:.4f}" for v in r2s], textposition='outside',
+            ))
+            fig2.update_layout(title="R² theo mô hình (cao hơn = tốt hơn)",
+                               yaxis_title="R²", height=350)
+            st.plotly_chart(fig2, use_container_width=True)
+
+    except ImportError:
+        st.info("Cài plotly để xem biểu đồ.")
+
+    st.info("Để huấn luyện lại LSTM: `python scripts/_train_lstm.py`")
+
 else:
-    st.info("Click **Evaluate Models** in the sidebar.")
+    st.warning("Chưa có checkpoint LSTM. Nhấn nút dưới để huấn luyện.")
+    if st.button("▶ Sinh dữ liệu + Huấn luyện LSTM", type="primary"):
+        with st.spinner("Đang chạy (có thể mất vài phút)..."):
+            import subprocess, sys
+            result = subprocess.run(
+                [sys.executable, "scripts/_train_lstm.py"],
+                capture_output=True, text=True, cwd="."
+            )
+            if result.returncode == 0:
+                st.success("Huấn luyện xong!")
+                st.code(result.stdout[-2000:])
+                st.rerun()
+            else:
+                st.error("Lỗi:")
+                st.code(result.stderr[-1000:])
+
+# ── Horizon accuracy ─────────────────────────────────────────────────────────
+if os.path.exists(XTEST_PATH) and os.path.exists(CHECKPOINT):
+    st.divider()
+    st.subheader("Độ chính xác theo tầm dự đoán (LSTM)")
+    if st.button("📊 Tính horizon accuracy"):
+        with st.spinner("Đang dự đoán..."):
+            import pickle
+            from ai.models.lstm_model import LSTMPredictor
+            from ai.evaluation.metrics import evaluate_regression
+            from ai.data.preprocessor import FEATURE_COLS
+
+            Xte = np.load(XTEST_PATH)
+            yte = np.load(YTEST_PATH)
+
+            model = LSTMPredictor(n_features=6, hidden_size=64, num_layers=2, seq_out=50, device='cpu')
+            model.load_weights(CHECKPOINT)
+            preds = model.predict(Xte)
+
+            rows = []
+            for label, steps in [("1 giây (10 bước)", 10), ("3 giây (30 bước)", 30), ("5 giây (50 bước)", 50)]:
+                met = evaluate_regression(yte[:, :steps, :], preds[:, :steps, :], FEATURE_COLS)
+                rows.append({"Tầm dự đoán": label,
+                             "MAE": round(met['mae'], 5),
+                             "MAPE (%)": round(met['mape'], 2),
+                             "R²": round(met['r2'], 4)})
+
+            try:
+                import pandas as pd
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            except ImportError:
+                st.json(rows)
